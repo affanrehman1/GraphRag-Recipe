@@ -1,56 +1,81 @@
-# Recipe GraphRAG Assistant
+# Recipe Graph RAG (Retrieval-Augmented Generation) 
 
-This project implements a Graph Retrieval-Augmented Generation (GraphRAG) system designed to answer questions about recipes. It leverages a Neo4j knowledge graph to store recipe and ingredient relationships and uses Groq's Large Language Models (LLMs) via LangChain and LangGraph to provide intelligent, context-aware answers.
+A powerful, AI-driven culinary assistant built with **Neo4j** and **LangGraph**. This project ingests a massive recipe dataset into a Knowledge Graph and uses Groq's **Llama 3.1** to answer natural language questions about recipes, ingredients, and cooking methods.
 
-## Architecture
+##  System Architecture
 
-The system consists of two main components:
+The system operates in two distinct phases:
 
-1.  **Data Ingestion (`ingest.py`)**: Reads recipe data from a CSV file (`RecipeNLG_dataset.csv`) and constructs a knowledge graph in Neo4j. It creates `Recipe` and `Ingredient` nodes and links them with `HAS_INGREDIENT` relationships.
-2.  **Conversational Agent (`graph_agent.py`)**: A LangGraph-based agent that accepts natural language questions from the user. It uses LangChain's `GraphCypherQAChain` to translate these questions into Cypher queries, retrieves relevant facts from the Neo4j database, and generates a final, natural language response using the Groq LLM.
+1. **Knowledge Graph Construction (`ingest.py`)**: 
+   Reads from the RecipeNLG dataset and builds a Neo4j Graph Database. 
+   - **Nodes**: `(Recipe)` containing the title, raw ingredient list, and step-by-step directions. `(Ingredient)` containing isolated, clean ingredient names (e.g., "brown sugar").
+   - **Relationships**: `(Recipe)-[:HAS_INGREDIENT]->(Ingredient)`.
+   - *Optimization*: Uses batched transactions (1,000 queries per batch) to ensure high-performance ingestion without connection timeouts.
 
-## Prerequisites
+2. **Conversational AI Agent (`graph_agent.py`)**: 
+   An interactive LangGraph agent that translates human questions into precise Cypher graph queries using a specialized `GraphCypherQAChain`. It traverses the graph to find connected recipes and ingredients, then uses those strict facts to provide a helpful, natural language response.
 
-*   Python 3.8 or higher
-*   A Neo4j AuraDB instance (Free tier is sufficient for the sample data)
-*   A Groq API Key
+##  Technologies Used
+- **Python 3.8+**
+- **Neo4j AuraDB**: Cloud graph database.
+- **LangChain & LangGraph**: Agentic workflow orchestration.
+- **Groq API**: High-speed LLM inference running `llama-3.1-8b-instant`.
+- **Pandas**: Efficient CSV data processing.
 
-## Setup and Installation
+##  Dataset Requirement
+This project requires the **RecipeNLG** dataset (a massive dataset of ~2.2M recipes and NER-extracted ingredients).
 
-1.  **Install Dependencies**:
-    Install the required Python packages using pip:
-    ```bash
-    pip install -r requirements.txt
-    ```
+1. Download the dataset from Kaggle: [RecipeNLG Dataset](https://www.kaggle.com/datasets/paultimothymooney/recipenlg)
+2. Extract the archive and place `RecipeNLG_dataset.csv` directly in the root of this project folder.
 
-2.  **Environment Configuration**:
-    Create a `.env` file in the root directory of the project and populate it with your Neo4j and Groq credentials:
-    ```env
-    NEO4J_URI=neo4j+ssc://<your-db-id>.databases.neo4j.io
-    NEO4J_USERNAME=neo4j
-    NEO4J_PASSWORD=<your-neo4j-password>
-    NEO4J_DATABASE=neo4j
-    GROQ_API_KEY=<your-groq-api-key>
-    ```
-    *Note: The URI scheme `neo4j+ssc://` is used to bypass strict SSL verification which can sometimes cause issues in certain network environments.*
+##  Setup & Installation
 
-## Usage
+**1. Clone the repository and navigate to the folder:**
+```bash
+git clone https://github.com/affanrehman1/GraphRag-Recipe.git
+cd GraphRag-Recipe
+```
 
-1.  **Ingest Data**:
-    Run the ingestion script to populate your Neo4j database with a sample of the recipe data.
-    ```bash
-    python ingest.py
-    ```
-    Wait for the script to confirm that the ingestion is complete.
+**2. Create a virtual environment and attach dependencies:**
+```bash
+python -m venv .venv
+# On Windows:
+.venv\Scripts\activate
+# On Mac/Linux:
+source .venv/bin/activate
 
-2.  **Run the Agent**:
-    Start the interactive conversational agent.
-    ```bash
-    python graph_agent.py
-    ```
-    Once the application starts, you can ask questions such as "What are some recipes that contain bacon?" or "How long does it take to make [Recipe Name]?". Type `exit` to terminate the session.
+pip install -r requirements.txt
+```
 
-## Notes
+**3. Environment Configuration:**
+Create a `.env` file in the root directory. You will need a **Groq API Key** and a **Neo4j AuraDB** instance (the Free Tier works perfectly).
 
-*   The ingestion script currently samples the first 200 recipes from the dataset to accommodate the limits of free Neo4j AuraDB instances. You can adjust the `SAMPLE_SIZE` variable in `ingest.py` to load more data.
-*   Ensure that the `RecipeNLG_dataset.csv` file is present in the project directory before running the ingestion script.
+```env
+NEO4J_URI=neo4j+ssc://<your-db-id>.databases.neo4j.io
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=<your-neo4j-password>
+NEO4J_DATABASE=neo4j
+GROQ_API_KEY=<your-groq-api-key>
+```
+*(Note: We use `neo4j+ssc://` to bypass strict SSL verification which can block connections in certain terminal environments).*
+
+##  Usage Guide
+
+### Phase 1: Ingest Data
+Before you can chat with the AI, you must build the graph!
+```bash
+python ingest.py
+```
+**Important AuraDB Note:** Neo4j Free Tier instances have a hard limit of ~50,000 nodes and 175,000 relationships. The ingest script will process recipes rapidly in batches of 1,000 until your free database quota is full. The script will automatically halt gracefully when limits are reached, and your graph will be perfectly usable for those ingested recipes!
+
+### Phase 2: Run the Agent
+Start the interactive Graph RAG terminal:
+```bash
+python graph_agent.py
+```
+**Example Questions to ask the Chef:**
+- *"What is the method to create Rhubarb Coffee Cake?"*
+- *"Give me the recipe for Double Cherry Delight."*
+- *"What are some recipes that contain bacon and eggs?"*
+
+Type `exit` to end the session.
