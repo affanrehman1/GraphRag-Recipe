@@ -6,7 +6,7 @@ This project implements a Graph Retrieval-Augmented Generation (GraphRAG) system
 
 The system consists of two main components:
 
-1.  **Data Ingestion (`ingest.py`)**: Reads recipe data from a CSV file (`RAW_recipes.csv`) and constructs a knowledge graph in Neo4j. It creates `Recipe` and `Ingredient` nodes and links them with `HAS_INGREDIENT` relationships.
+1.  **Data Ingestion (`ingest.py`)**: Reads recipe data from a CSV file (`RecipeNLG_dataset.csv`) and constructs a knowledge graph in Neo4j. It creates `Recipe` and `Ingredient` nodes and links them with `HAS_INGREDIENT` relationships.
 2.  **Conversational Agent (`graph_agent.py`)**: A LangGraph-based agent that accepts natural language questions from the user. It uses LangChain's `GraphCypherQAChain` to translate these questions into Cypher queries, retrieves relevant facts from the Neo4j database, and generates a final, natural language response using the Groq LLM.
 
 ## Prerequisites
@@ -53,4 +53,4 @@ The system consists of two main components:
 ## Notes
 
 *   The ingestion script currently samples the first 200 recipes from the dataset to accommodate the limits of free Neo4j AuraDB instances. You can adjust the `SAMPLE_SIZE` variable in `ingest.py` to load more data.
-*   Ensure that the `RAW_recipes.csv` file is present in the project directory before running the ingestion script.
+*   Ensure that the `RecipeNLG_dataset.csv` file is present in the project directory before running the ingestion script.

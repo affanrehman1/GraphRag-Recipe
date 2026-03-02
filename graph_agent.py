@@ -40,7 +40,8 @@ Schema:
 Note: Do not include any explanations or apologies in your responses.
 Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
 Do not include any text except the generated Cypher statement.
-IMPORTANT: When searching for names of recipes or ingredients, ALWAYS use case-insensitive partial matching using toLower() and CONTAINS. For example: `MATCH (r:Recipe) WHERE toLower(r.name) CONTAINS toLower('ribs') RETURN r`. NEVER use strict equality like `r.name = 'ribs'`.
+IMPORTANT: When searching for names of recipes or ingredients, ALWAYS use case-insensitive partial matching using toLower() and CONTAINS. For example: `MATCH (r:Recipe) WHERE toLower(r.title) CONTAINS toLower('ribs') RETURN r`. NEVER use strict equality like `r.title = 'ribs'`. Note that recipe names are stored in the `title` property.
+IMPORTANT: If the user asks for a recipe or the ingredients of a recipe, you MUST traverse the graph to get its ingredients, directions, and the full ingredient list! Do not just return the Recipe node. Example: `MATCH (r:Recipe)-[:HAS_INGREDIENT]->(i:Ingredient) WHERE toLower(r.title) CONTAINS toLower('cherry') RETURN r.title, r.ingredients_list, r.directions, collect(i.name) AS searchable_ingredients`
 
 The question is:
 {question}"""

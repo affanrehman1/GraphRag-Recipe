@@ -27,13 +27,17 @@ def main():
         return
 
     print("Loading recipes dataset...")
-    df = pd.read_csv("RAW_recipes.csv")
+    df = pd.read_csv("RecipeNLG_dataset.csv")
     
     # Take a sample
     df_sample = df.head(SAMPLE_SIZE).copy()
     
-    # Parse the ingredients column
-    df_sample["parsed_ingredients"] = df_sample["ingredients"].apply(parse_ingredients)
+    # Parse the ingredients column using NER for the relationship graph
+    df_sample["parsed_ingredients"] = df_sample["NER"].apply(parse_ingredients)
+    
+    # The actual readable ingredients and directions strings
+    df_sample["ingredients_list"] = df_sample["ingredients"].astype(str)
+    df_sample["directions"] = df_sample["directions"].astype(str)
     
     print(f"Connecting to Neo4j at {NEO4J_URI}...")
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
@@ -47,41 +51,52 @@ def main():
         except Exception as e:
             print(f"Warning on constraints: {e}")
 
-        # 2. Ingest the data
-        print(f"Ingesting {SAMPLE_SIZE} recipes...")
+        # 2. Ingest the data in batches for better performance and stability
+        batch_size = 1000
+        batch = []
+        total_recipes = len(df_sample)
+        print(f"Ingesting {total_recipes} recipes in batches of {batch_size}...")
         
-        for index, row in df_sample.iterrows():
-            recipe_id = row['id']
-            recipe_name = row['name']
-            minutes = row['minutes']
-            ingredients = row['parsed_ingredients']
-            
-            # Print progress every 50 recipes
-            if index % 50 == 0:
-                print(f"Processed {index} recipes...")
-
+        def insert_recipes(tx, batch_data):
             query = """
-            // Create or match Recipe
-            MERGE (r:Recipe {id: $recipe_id})
-            SET r.name = $recipe_name, r.minutes = $minutes
+            UNWIND $batch AS row
+            MERGE (r:Recipe {id: row.id})
+            SET r.title = row.title,
+                r.ingredients_list = row.ingredients_list,
+                r.directions = row.directions
             
-            WITH r
-            // Unwind the ingredients list passed as a parameter
-            UNWIND $ingredients AS ingredient_name
-            
-            // Create or match Ingredient
+            WITH r, row
+            UNWIND row.ingredients AS ingredient_name
             MERGE (i:Ingredient {name: ingredient_name})
-            
-            // Create Relationship
             MERGE (r)-[:HAS_INGREDIENT]->(i)
             """
+            tx.run(query, batch=batch_data)
+
+        for index, row in df_sample.iterrows():
+            batch.append({
+                'id': str(index),
+                'title': row['title'],
+                'ingredients': row['parsed_ingredients'],
+                'ingredients_list': row['ingredients_list'],
+                'directions': row['directions']
+            })
             
-            try:
-                session.run(query, recipe_id=recipe_id, recipe_name=recipe_name, 
-                            minutes=minutes, ingredients=ingredients)
-            except Exception as e:
-                print(f"Failed to ingest recipe {recipe_id}: {e}")
+            if len(batch) >= batch_size:
+                try:
+                    session.execute_write(insert_recipes, batch)
+                except Exception as e:
+                    print(f"Failed to ingest batch ending at recipe {index}: {e}")
+                batch = []
+                print(f"Processed {index+1}/{total_recipes} recipes...")
                 
+        # Ingest any remaining recipes
+        if batch:
+            try:
+                session.execute_write(insert_recipes, batch)
+                print(f"Processed {total_recipes}/{total_recipes} recipes...")
+            except Exception as e:
+                print(f"Failed to ingest final batch: {e}")
+
         print("Ingestion complete!")
         
         # Verify
