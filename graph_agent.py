@@ -31,13 +31,31 @@ graph = Neo4jGraph(
 # Initialize Groq LLM
 llm = ChatGroq(model_name="llama-3.1-8b-instant", temperature=0)
 
+CYPHER_GENERATION_TEMPLATE = """Task: Generate Cypher statement to query a graph database.
+Instructions:
+Use only the provided relationship types and properties in the schema.
+Do not use any other relationship types or properties that are not provided.
+Schema:
+{schema}
+Note: Do not include any explanations or apologies in your responses.
+Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
+Do not include any text except the generated Cypher statement.
+IMPORTANT: When searching for names of recipes or ingredients, ALWAYS use case-insensitive partial matching using toLower() and CONTAINS. For example: `MATCH (r:Recipe) WHERE toLower(r.name) CONTAINS toLower('ribs') RETURN r`. NEVER use strict equality like `r.name = 'ribs'`.
+
+The question is:
+{question}"""
+CYPHER_GENERATION_PROMPT = PromptTemplate(
+    input_variables=["schema", "question"], template=CYPHER_GENERATION_TEMPLATE
+)
+
 # Build a specialized GraphCypherQAChain to query Neo4j
 chain = GraphCypherQAChain.from_llm(
     cypher_llm=llm,
     qa_llm=llm,
     graph=graph,
     verbose=True,
-    allow_dangerous_requests=True
+    allow_dangerous_requests=True,
+    cypher_prompt=CYPHER_GENERATION_PROMPT
 )
 
 def retrieve_from_graph(state: AgentState):

@@ -12,7 +12,7 @@ NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 
 # Number of recipes to sample so we don't blow up the free instance
-SAMPLE_SIZE = 200
+SAMPLE_SIZE = 267784
 
 def parse_ingredients(ingredients_str):
     try:
