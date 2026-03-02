@@ -1,0 +1,4 @@
+RAW_recipes.csv
+.venv
+.env
+__pycache__
