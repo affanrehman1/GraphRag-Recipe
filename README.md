@@ -12,14 +12,20 @@ The system operates in two distinct phases:
    - **Relationships**: `(Recipe)-[:HAS_INGREDIENT]->(Ingredient)`.
    - *Optimization*: Uses batched transactions (1,000 queries per batch) to ensure high-performance ingestion without connection timeouts.
 
-2. **Conversational AI Agent (`graph_agent.py`)**: 
-   An interactive LangGraph agent that translates human questions into precise Cypher graph queries using a specialized `GraphCypherQAChain`. It traverses the graph to find connected recipes and ingredients, then uses those strict facts to provide a helpful, natural language response. The agent maintains **conversational memory**, allowing it to seamlessly track context across multiple questions during a chat session.
+2. **Backend API (`api.py`) & LangGraph Agent (`graph_agent.py`)**: 
+   A FastAPI backend that wraps the interactive LangGraph agent. The agent translates human questions into precise Cypher graph queries using a specialized `GraphCypherQAChain`. It traverses the graph to find connected recipes and ingredients, then uses those strict facts to provide a helpful, natural language response. The agent maintains **conversational memory**, allowing it to seamlessly track context across multiple questions and dynamically exclude duplicate recipes.
+
+3. **Web Application Frontend (`/frontend`)**: 
+   A Next.js React application styled with Tailwind CSS. It provides a clean, responsive, culinary-themed chat interface for users to visually interact with the Recipe Graph RAG system.
 
 ##  Technologies Used
 - **Python 3.8+**
 - **Neo4j AuraDB**: Cloud graph database.
 - **LangChain & LangGraph**: Agentic workflow orchestration.
 - **Groq API**: High-speed LLM inference running `llama-3.1-8b-instant`.
+- **FastAPI & Uvicorn**: Backend REST API serving the graph agent.
+- **Next.js & React**: Frontend web framework.
+- **Tailwind CSS**: UI styling.
 - **Pandas**: Efficient CSV data processing.
 
 ##  Dataset Requirement
@@ -68,18 +74,27 @@ python ingest.py
 ```
 **Important AuraDB Note:** Neo4j Free Tier instances have a hard limit of ~50,000 nodes and 175,000 relationships. The ingest script will process recipes rapidly in batches of 1,000 until your free database quota is full. The script will automatically halt gracefully when limits are reached, and your graph will be perfectly usable for those ingested recipes!
 
-### Phase 2: Run the Agent
-Start the interactive Graph RAG terminal:
+### Phase 2: Start the Backend API
+Start the FastAPI server that hosts the LangGraph agent:
 ```bash
-python graph_agent.py
+python api.py
 ```
+*(The server will start on `http://localhost:8000`)*
+
+### Phase 3: Start the Web UI
+Open a **new terminal window**, navigate to the frontend folder, install the Node dependencies, and start the Next.js development server:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+*(The UI will be accessible at `http://localhost:3000`)*
+
 **Example Questions to ask the Chef:**
 - *"What is the method to create Rhubarb Coffee Cake?"*
-- *"Give me the recipe for Double Cherry Delight."*
+- *"Give me 3 recipes for Double Cherry Delight."*
 - *"What are some recipes that contain bacon and eggs?"*
-- *"Substitute the bacon for extra eggs in the last recipe you mentioned."* (Shows conversational memory)
+- *"Give me different dishes."* (Shows conversational memory and pagination context)
 
 **Note on Rate Limits:**
-The agent enforces a strict `LIMIT 3` on all recipe Cypher queries under the hood. This ensures that broad queries (e.g., "chicken") don't pull thousands of recipes and cause Token Rate Limit violations on the free Groq API tier (`llama-3.1-8b-instant` constraint).
-
-Type `exit` to end the session.
+The agent enforces strict Cypher limit constraints (e.g., `LIMIT 3` on full recipes) under the hood. This ensures that broad queries don't pull thousands of recipes and cause Token Rate Limit violations on the free Groq API tier (`llama-3.1-8b-instant` constraint).
