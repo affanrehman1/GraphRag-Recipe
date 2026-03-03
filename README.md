@@ -13,7 +13,7 @@ The system operates in two distinct phases:
    - *Optimization*: Uses batched transactions (1,000 queries per batch) to ensure high-performance ingestion without connection timeouts.
 
 2. **Conversational AI Agent (`graph_agent.py`)**: 
-   An interactive LangGraph agent that translates human questions into precise Cypher graph queries using a specialized `GraphCypherQAChain`. It traverses the graph to find connected recipes and ingredients, then uses those strict facts to provide a helpful, natural language response.
+   An interactive LangGraph agent that translates human questions into precise Cypher graph queries using a specialized `GraphCypherQAChain`. It traverses the graph to find connected recipes and ingredients, then uses those strict facts to provide a helpful, natural language response. The agent maintains **conversational memory**, allowing it to seamlessly track context across multiple questions during a chat session.
 
 ##  Technologies Used
 - **Python 3.8+**
@@ -77,5 +77,9 @@ python graph_agent.py
 - *"What is the method to create Rhubarb Coffee Cake?"*
 - *"Give me the recipe for Double Cherry Delight."*
 - *"What are some recipes that contain bacon and eggs?"*
+- *"Substitute the bacon for extra eggs in the last recipe you mentioned."* (Shows conversational memory)
+
+**Note on Rate Limits:**
+The agent enforces a strict `LIMIT 3` on all recipe Cypher queries under the hood. This ensures that broad queries (e.g., "chicken") don't pull thousands of recipes and cause Token Rate Limit violations on the free Groq API tier (`llama-3.1-8b-instant` constraint).
 
 Type `exit` to end the session.
