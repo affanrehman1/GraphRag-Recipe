@@ -12,6 +12,7 @@ from langgraph.graph import StateGraph, END
 # Define the state for our LangGraph
 class AgentState(TypedDict):
     question: str
+    chat_history: str
     cypher_result: str
     final_answer: str
 
@@ -40,8 +41,9 @@ Schema:
 Note: Do not include any explanations or apologies in your responses.
 Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
 Do not include any text except the generated Cypher statement.
-IMPORTANT: When searching for names of recipes or ingredients, ALWAYS use case-insensitive partial matching using toLower() and CONTAINS. For example: `MATCH (r:Recipe) WHERE toLower(r.title) CONTAINS toLower('ribs') RETURN r`. NEVER use strict equality like `r.title = 'ribs'`. Note that recipe names are stored in the `title` property.
-IMPORTANT: If the user asks for a recipe or the ingredients of a recipe, you MUST traverse the graph to get its ingredients, directions, and the full ingredient list! Do not just return the Recipe node. Example: `MATCH (r:Recipe)-[:HAS_INGREDIENT]->(i:Ingredient) WHERE toLower(r.title) CONTAINS toLower('cherry') RETURN r.title, r.ingredients_list, r.directions, collect(i.name) AS searchable_ingredients`
+IMPORTANT: When searching for names of recipes or ingredients, ALWAYS use case-insensitive partial matching using toLower() and CONTAINS. For example: `MATCH (r:Recipe) WHERE toLower(r.title) CONTAINS toLower('ribs') RETURN r LIMIT 3`. NEVER use strict equality like `r.title = 'ribs'`. Note that recipe names are stored in the `title` property.
+IMPORTANT: If the user asks for a recipe or the ingredients of a recipe, you MUST traverse the graph to get its ingredients, directions, and the full ingredient list! Do not just return the Recipe node. Example: `MATCH (r:Recipe)-[:HAS_INGREDIENT]->(i:Ingredient) WHERE toLower(r.title) CONTAINS toLower('cherry') RETURN r.title, r.ingredients_list, r.directions, collect(i.name) AS searchable_ingredients LIMIT 3`
+IMPORTANT: ALWAYS append `LIMIT 3` to the end of your Cypher queries when returning recipes! This is critical to prevent context window overflow errors.
 
 The question is:
 {question}"""
@@ -56,7 +58,8 @@ chain = GraphCypherQAChain.from_llm(
     graph=graph,
     verbose=True,
     allow_dangerous_requests=True,
-    cypher_prompt=CYPHER_GENERATION_PROMPT
+    cypher_prompt=CYPHER_GENERATION_PROMPT,
+    return_direct=True
 )
 
 def retrieve_from_graph(state: AgentState):
@@ -67,7 +70,10 @@ def retrieve_from_graph(state: AgentState):
     
     try:
         # We ask LangChain to turn the question into a Cypher query and return the context
-        result = chain.invoke({"query": state["question"]})
+        query_text = state["question"]
+        if state.get("chat_history"):
+            query_text = f"Chat History:\n{state['chat_history']}\n\nLatest Question: {state['question']}"
+        result = chain.invoke({"query": query_text})
         fact_result = result.get("result", "")
     except Exception as e:
         fact_result = f"Failed to retrieve data from graph: {e}"
@@ -81,10 +87,14 @@ def generate_final_answer(state: AgentState):
     print("---GENERATING FINAL ANSWER---")
     question = state["question"]
     graph_context = state["cypher_result"]
+    chat_history = state.get("chat_history", "")
     
     prompt = f"""You are a helpful culinary assistant powered by a Recipe Knowledge Graph.
 You MUST answer the user's question based ONLY on the facts retrieved from the graph.
 If the Graph Context is empty or doesn't have the answer, say you don't know based on the current database. Do not hallucinate.
+
+Chat History:
+{chat_history}
 
 User Question: {question}
 
@@ -114,17 +124,23 @@ app = workflow.compile()
 if __name__ == "__main__":
     print("\\n🤖 Welcome to GraphRAG Recipe Assistant!")
     print("Database connected. Running test query...\\n")
+    
+    chat_history_str = ""
     while(True):
         user_input = input("Chef, what is your question? > ")
         if(user_input.lower() == "exit"):
             break
         
         # Run graph
-        state_input = {"question": user_input}
+        state_input = {"question": user_input, "chat_history": chat_history_str}
         try:
             result = app.invoke(state_input)
+            answer = result["final_answer"]
             print("\\n=== ANSWER ===")
-            print(result["final_answer"])
+            print(answer)
             print("================\\n")
+            
+            # Update chat history for the next iteration
+            chat_history_str += f"User: {user_input}\\nAssistant: {answer}\\n\\n"
         except Exception as e:
             print(f"Error during execution: {e}")

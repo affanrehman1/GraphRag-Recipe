@@ -3,3 +3,4 @@ RAW_recipes.csv
 .env
 __pycache__
 RecipeNLG_dataset.csv
+implementation_plan.md.resolved
