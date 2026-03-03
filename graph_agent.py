@@ -42,8 +42,11 @@ Note: Do not include any explanations or apologies in your responses.
 Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
 Do not include any text except the generated Cypher statement.
 IMPORTANT: When searching for names of recipes or ingredients, ALWAYS use case-insensitive partial matching using toLower() and CONTAINS. For example: `MATCH (r:Recipe) WHERE toLower(r.title) CONTAINS toLower('ribs') RETURN r LIMIT 3`. NEVER use strict equality like `r.title = 'ribs'`. Note that recipe names are stored in the `title` property.
-IMPORTANT: If the user asks for a recipe or the ingredients of a recipe, you MUST traverse the graph to get its ingredients, directions, and the full ingredient list! Do not just return the Recipe node. Example: `MATCH (r:Recipe)-[:HAS_INGREDIENT]->(i:Ingredient) WHERE toLower(r.title) CONTAINS toLower('cherry') RETURN r.title, r.ingredients_list, r.directions, collect(i.name) AS searchable_ingredients LIMIT 3`
-IMPORTANT: ALWAYS append `LIMIT 3` to the end of your Cypher queries when returning recipes! This is critical to prevent context window overflow errors.
+IMPORTANT: If the user asks for a FULL recipe or the cooking directions of a recipe, you MUST traverse the graph to get its ingredients, directions, and the full ingredient list! Do not just return the Recipe node. Example: `MATCH (r:Recipe)-[:HAS_INGREDIENT]->(i:Ingredient) WHERE toLower(r.title) CONTAINS toLower('cherry') RETURN r.title, r.ingredients_list, r.directions, collect(i.name) AS searchable_ingredients LIMIT 3`
+IMPORTANT CONTEXT OVERFLOW RULE: If your query returns COMPLETE RECIPES (with directions and lists), you MUST use `LIMIT 3`. NEVER return more than 3 full recipes under any circumstances!
+IMPORTANT INGREDIENT LIST RULE: If the user ONLY asks for a list of ingredient items (e.g. "what items use beef"), you must prevent database traversal timeouts. You MUST add `LIMIT 100` directly after the MATCH clause before returning distinct names. Example: 
+`MATCH (r:Recipe)-[:HAS_INGREDIENT]->(i:Ingredient) WHERE toLower(r.ingredients_list) CONTAINS 'beef' WITH i LIMIT 100 RETURN DISTINCT i.name LIMIT 25`
+IMPORTANT PAGINATION RULE: Graph Queries DO NOT support generic pagination/SKIP well. If the user asks for "different" or "other" recipes, you MUST read the chat history above, extract the titles of the exact recipes you already provided, and EXCLUDE them using a `WHERE NOT toLower(r.title) IN ['dish 1', 'dish 2']` clause. Example substitution logic: `MATCH (r:Recipe) WHERE toLower(r.title) CONTAINS 'beef' AND NOT toLower(r.title) IN ['beef stroganoff', 'beef and bacon casserole'] RETURN r`
 
 The question is:
 {question}"""
@@ -86,7 +89,13 @@ def generate_final_answer(state: AgentState):
     """
     print("---GENERATING FINAL ANSWER---")
     question = state["question"]
-    graph_context = state["cypher_result"]
+    graph_context = str(state.get("cypher_result", ""))
+    
+    # Hard truncation to prevent LLM Token Rate Limit errors (6000 TPM limit on Groq)
+    if len(graph_context) > 12000:
+        print(f"Truncating massive graph context from {len(graph_context)} chars to 12000 chars...")
+        graph_context = graph_context[:12000] + "\\n...[TRUNCATED TO PREVENT TOKEN OVERFLOW]"
+
     chat_history = state.get("chat_history", "")
     
     prompt = f"""You are a helpful culinary assistant powered by a Recipe Knowledge Graph.

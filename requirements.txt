@@ -5,3 +5,5 @@ langchain-groq
 langchain-neo4j
 pandas
 python-dotenv
+fastapi
+uvicorn
