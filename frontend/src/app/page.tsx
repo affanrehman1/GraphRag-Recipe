@@ -85,28 +85,36 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#fcfbf9] text-[#2c2c2c] font-sans selection:bg-orange-200">
+    <div className="flex flex-col min-h-screen bg-[#faf8f5] text-[#2c2c2c] font-sans selection:bg-orange-200 relative">
+      {/* Premium Ambient Background */}
+      <div className="fixed inset-0 z-0 bg-gradient-to-br from-[#fffbfa] via-[#f7f3ed] to-[#faeee7] pointer-events-none"></div>
+      <div className="fixed -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-[#e96b35]/5 blur-[120px] pointer-events-none z-0"></div>
+      <div className="fixed top-[30%] -right-[10%] w-[50%] h-[70%] rounded-full bg-[#3b82f6]/5 blur-[120px] pointer-events-none z-0"></div>
+
+      {/* Subtle Texture */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.015] bg-[url('https://www.transparenttextures.com/patterns/food.png')] z-0"></div>
+
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-[#e5e1d8] bg-[#fcfbf9]/90 backdrop-blur-md px-6 py-4 flex items-center justify-between shadow-sm">
+      <header className="sticky top-0 z-10 border-b border-white/60 bg-white/60 backdrop-blur-2xl px-6 md:px-10 py-5 flex items-center justify-between shadow-[0_4px_30px_rgba(0,0,0,0.03)]">
         <div className="flex items-center gap-3">
-          <div className="bg-[#e96b35] text-white p-2 rounded-lg shadow-sm">
-            <ChefHat size={28} strokeWidth={2} />
+          <div className="bg-gradient-to-br from-[#e96b35] to-[#d65e2b] text-white p-2.5 rounded-xl shadow-md border border-[#c55322]">
+            <ChefHat size={26} strokeWidth={2.5} />
           </div>
           <div>
-            <h1 className="text-xl font-bold font-serif tracking-tight text-[#2c2c2c]">Recipe GraphRAG</h1>
-            <p className="text-sm text-[#7a7469] font-medium hidden sm:block">Neo4j & LangGraph Assistant</p>
+            <h1 className="text-xl font-bold font-serif tracking-tight text-[#1a1a1a]">Recipe GraphRAG</h1>
+            <p className="text-xs text-[#8c8577] font-semibold tracking-wide uppercase mt-0.5 hidden sm:block">Neo4j Knowledge Graph</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-[#7a7469] bg-[#f2efe9] px-3 py-1.5 rounded-full border border-[#e5e1d8]">
-          <BookOpen size={16} />
-          <span className="font-semibold hidden sm:inline">CS Final Project</span>
+        <div className="flex items-center gap-2 text-sm text-[#5a5449] bg-[#f4f1eb] px-4 py-2 rounded-full border border-[#e5e1d8] shadow-inner">
+          <BookOpen size={16} className="text-[#e96b35]" />
+          <span className="font-bold hidden sm:inline tracking-tight">CS Final Project</span>
         </div>
       </header>
 
       {/* Main Chat Area */}
-      <main className="flex-1 overflow-y-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto space-y-6">
+      <main className="flex-1 overflow-y-auto px-6 md:px-12 py-10 md:py-16 relative z-0">
+        <div className="max-w-4xl mx-auto space-y-10">
 
           {error && (
             <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl flex items-start gap-3">
@@ -119,23 +127,23 @@ export default function Home() {
             <div
               key={idx}
               className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"
-                }`}
+                } animate-in slide-in-from-bottom-2 fade-in duration-300`}
             >
               <div
-                className={`max-w-[85%] sm:max-w-[75%] px-5 py-4 rounded-2xl shadow-sm border ${m.role === "user"
-                  ? "bg-[#3b82f6] text-white border-[#3b82f6] rounded-br-sm"
-                  : "bg-white text-[#2c2c2c] border-[#e5e1d8] rounded-bl-sm"
+                className={`max-w-[85%] sm:max-w-[80%] px-6 py-4 rounded-2xl shadow-sm border ${m.role === "user"
+                  ? "bg-[#3b82f6] text-white border-[#3b82f6] rounded-br-sm shadow-blue-500/10"
+                  : "bg-white text-[#2c2c2c] border-[#e5e1d8] rounded-bl-sm shadow-black/5"
                   }`}
               >
                 {m.role === "assistant" ? (
-                  <div className="prose prose-sm prose-orange max-w-none">
+                  <div className="prose prose-sm md:prose-base prose-orange max-w-none prose-p:leading-relaxed prose-li:my-1">
                     <ReactMarkdown>{m.content}</ReactMarkdown>
                   </div>
                 ) : (
-                  <p className="whitespace-pre-wrap leading-relaxed m-0" style={{ color: "#ffffff" }}>{m.content}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed m-0 text-base font-medium" style={{ color: "#ffffff" }}>{m.content}</p>
                 )}
               </div>
-              <span className="text-xs text-[#a39e93] mt-2 px-1 font-medium">
+              <span className="text-xs text-[#8c8577] mt-2 px-2 font-semibold tracking-wide uppercase">
                 {m.role === "user" ? "You" : "Chef AI"}
               </span>
             </div>
@@ -156,11 +164,11 @@ export default function Home() {
       </main>
 
       {/* Input Area */}
-      <footer className="sticky bottom-0 bg-[#fcfbf9]/95 backdrop-blur-md border-t border-[#e5e1d8] px-4 py-5 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
-        <div className="max-w-3xl mx-auto relative">
+      <footer className="sticky bottom-0 w-full bg-gradient-to-t from-[#f7f3ed] via-[#f7f3ed]/95 to-transparent pt-12 pb-24 md:pb-32 px-6 md:px-10 drop-shadow-[0_-15px_30px_rgba(233,107,53,0.04)] z-10">
+        <div className="max-w-4xl mx-auto relative">
           <form
             onSubmit={handleSubmit}
-            className="flex items-end gap-2 bg-white rounded-2xl border border-[#e5e1d8] p-2 shadow-sm focus-within:ring-2 focus-within:ring-[#e96b35]/20 focus-within:border-[#e96b35] transition-all"
+            className="flex items-end gap-5 bg-white rounded-[32px] border-[2px] border-[#e5e1d8] p-4 focus-within:ring-[6px] focus-within:ring-[#e96b35]/20 focus-within:border-[#e96b35] hover:border-[#d6caba] transition-all duration-300 shadow-xl shadow-orange-100/40"
           >
             <textarea
               value={input}
@@ -171,20 +179,20 @@ export default function Home() {
                   handleSubmit(e);
                 }
               }}
-              placeholder="Ask for a recipe, ingredient, or cooking method..."
-              className="flex-1 max-h-48 min-h-[44px] overflow-y-auto bg-transparent border-0 resize-none px-3 py-2.5 focus:outline-none text-[#2c2c2c] placeholder:text-[#a39e93] leading-relaxed"
+              placeholder="Ask the chef..."
+              className="flex-1 max-h-[300px] min-h-[60px] overflow-y-auto bg-transparent border-0 resize-none px-6 py-4 focus:outline-none text-[#2c2c2c] text-xl font-semibold placeholder:text-[#a39e93] placeholder:font-medium leading-relaxed tracking-wide"
               rows={1}
             />
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
-              className="bg-[#e96b35] hover:bg-[#d65e2b] disabled:bg-[#f2efe9] disabled:text-[#a39e93] text-white p-3 rounded-xl transition-colors shrink-0 flex items-center justify-center shadow-sm disabled:shadow-none mb-0.5 mr-0.5"
+              className="bg-[#e96b35] hover:bg-[#c55322] hover:shadow-xl hover:-translate-y-1 active:translate-y-0 disabled:bg-[#f2efe9] disabled:text-[#a39e93] disabled:hover:shadow-none disabled:hover:translate-y-0 disabled:transform-none text-white p-6 rounded-[24px] transition-all duration-300 shrink-0 flex items-center justify-center shadow-md mb-2 mr-2"
             >
-              <Send size={18} strokeWidth={2.5} className="ml-0.5" />
+              <Send size={32} strokeWidth={2.5} className="ml-1" />
             </button>
           </form>
-          <div className="text-center mt-3">
-            <span className="text-xs text-[#a39e93] font-medium">Recipe Graph RAG answers are generated from Neo4j factual extraction.</span>
+          <div className="text-center mt-6 mb-2">
+            <span className="text-sm text-[#8c8577] font-bold tracking-wide">Recipe Graph RAG • Powered by Neo4j</span>
           </div>
         </div>
       </footer>

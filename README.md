@@ -98,3 +98,6 @@ npm run dev
 
 **Note on Rate Limits:**
 The agent enforces strict Cypher limit constraints (e.g., `LIMIT 3` on full recipes) under the hood. This ensures that broad queries don't pull thousands of recipes and cause Token Rate Limit violations on the free Groq API tier (`llama-3.1-8b-instant` constraint).
+
+**Project Cleanliness:**
+All legacy planning and scratch files (like `.resolved` artifacts) have been completely removed from the root directory to ensure the repository remains minimal and student-ready for submission.
